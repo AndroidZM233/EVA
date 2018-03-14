@@ -1,0 +1,45 @@
+apply plugin: 'com.android.application'
+//apply plugin: 'me.tatarka.retrolambda'
+android {
+    compileSdkVersion 25
+    buildToolsVersion '27.0.1'
+
+    defaultConfig {
+        applicationId "com.Alan.eva"
+        minSdkVersion 19
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "SERVER_URL", "\"http://192.168.14.106/api/index.php/Home/\""
+            buildConfigField "Boolean", "DEBUG_MODE", "false"
+        }
+        debug {
+            buildConfigField "String", "SERVER_URL", "\"http://192.168.14.105/api/index.php/Home/\""
+            buildConfigField "String", "SERVER_URL", "\"http://101.201.30.238/index.php/home/\""
+            buildConfigField "Boolean", "DEBUG_MODE", "true"
+        }
+    }
+    //设置JDK1.8
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    compile project(':xutils')
+    compile 'com.android.support:support-v4:25.3.1'
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:design:25.3.1'
+    compile files('libs/gson-2.2.1.jar')
+    compile 'org.greenrobot:eventbus:3.0.0'
+    compile 'com.wuxiaolong.pullloadmorerecyclerview:library:1.1.1'
+    compile 'com.umeng.analytics:analytics:latest.integration'
+    compile project(path: ':photo')
+    compile project(path: ':chart')
+}
