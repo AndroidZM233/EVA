@@ -1,18 +1,29 @@
 package com.Alan.eva.service;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
+import android.util.Log;
+import android.widget.Toast;
 
 import com.Alan.eva.config.BLEConfig;
 import com.Alan.eva.config.BleEvent;
@@ -44,6 +55,7 @@ import static com.Alan.eva.config.BLEConfig.BLE_RELEASE_DEVICE;
  * //开始顺序是打开蓝牙->查找体温计->连接体温计->搜索服务->读取数据
  * //结束顺序应该是先结束轮询->断开服务->断开蓝牙
  */
+@SuppressLint("NewApi")
 public class BleService extends Service {
     private BluetoothGatt bluetoothGatt;
     private BluetoothAdapter bluetooth;
@@ -59,6 +71,11 @@ public class BleService extends Service {
     private String batteryPower;
     private String cid;
     private DataBleCallBackEx callBack;
+
+    /**
+     * ble搜索
+     */
+    private BluetoothLeScanner mBluetoothLeScanner;
 
     @Nullable
     @Override
@@ -78,13 +95,18 @@ public class BleService extends Service {
         EventBus.getDefault().register(this);
 
         IntentFilter bleFilter = new IntentFilter();
-        bleFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        bleFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        bleFilter.addAction(BluetoothDevice.ACTION_FOUND);
+//        bleFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+//        bleFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+//        bleFilter.addAction(BluetoothDevice.ACTION_FOUND);
         bleFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         connectReceiver = new BleConnectReceiver(this);
         registerReceiver(connectReceiver, bleFilter);
         bluetooth = BluetoothAdapter.getDefaultAdapter();
+        // 检查设备上是否支持蓝牙
+        if (bluetooth == null) {
+            Toast.makeText(this, "你的手机不支持蓝牙", Toast.LENGTH_SHORT).show();
+            return;
+        }
         openBle();
     }
 
@@ -105,6 +127,10 @@ public class BleService extends Service {
      */
     private void openBle() {
         bluetooth.enable();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mBluetoothLeScanner = bluetooth.getBluetoothLeScanner();
+        }
+
     }
 
     /**
@@ -181,42 +207,95 @@ public class BleService extends Service {
      * 扫描体温计
      */
     private void startScan() {
-        if (bluetooth.isDiscovering()) { //正在扫描不能重复扫描
-            bluetooth.cancelDiscovery();
-            LogUtil.info("正在扫描中");
-            return;
+//        if (bluetooth.isDiscovering()) { //正在扫描不能重复扫描
+//            bluetooth.cancelDiscovery();
+//            LogUtil.info("正在扫描中");
+//            return;
+//        }
+//        boolean isScanning = bluetooth.startDiscovery();
+//        LogUtil.info("是否开始扫描?" + isScanning);
+
+        if (mBluetoothLeScanner != null) {
+            mBluetoothLeScanner.startScan(mScanCallback);
+            sendMsg(BLEConfig.BLE_IS_SCANNING, "正在扫描，请提前打开体温计");
         }
-        boolean isScanning = bluetooth.startDiscovery();
-        LogUtil.info("是否开始扫描?" + isScanning);
+
     }
 
     /**
      * 停止扫描
      */
     public void stopScan() {
-        if (bluetooth.isDiscovering()) {
-            bluetooth.cancelDiscovery();
+//        if (bluetooth.isDiscovering()) {
+//            bluetooth.cancelDiscovery();
+//        }
+
+        if (mBluetoothLeScanner != null) {
+            mBluetoothLeScanner.stopScan(mScanCallback);
+            sendMsg(BLEConfig.BLE_SCAN_FINISH, "扫描结束");
         }
     }
+
+
+    // 5.0+.返蓝牙信息更新到界面
+    private ScanCallback mScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            super.onScanResult(callbackType, result);
+            int rssi = result.getRssi();
+            BluetoothDevice device = result.getDevice();
+            String address = device.getAddress();
+            if (BluetoothAdapter.checkBluetoothAddress(address)) {  //mac地址是否符合要求
+                String name = device.getName();
+                if (!TextUtils.isEmpty(name) && name.length() > 3) { //名称是否不为空且长度大于3
+                    if (name.contains("EVE")) { //体温计是否包含EVE字符
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(BLEConfig.DEVICE_KEY, device);
+                        sendMsg(BLEConfig.BLE_NEW_DEVICE, bundle);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            super.onScanFailed(errorCode);
+        }
+    };
+
 
     /**
      * 尝试连接
      *
-     * @param address mac address
      */
-    private void connect(String address) {
+    private String mBluetoothDeviceAddress;
+
+    private boolean connect(String address) {
         stopScan();  //停止扫描
         if (!BluetoothAdapter.checkBluetoothAddress(address)) {
-            return;
+            return false;
         }
+        // Previously connected device.  Try to reconnect.
+        if (mBluetoothDeviceAddress != null && address.equals(mBluetoothDeviceAddress)
+                && bluetoothGatt != null) {
+            LogUtil.info("Trying to use an existing mBluetoothGatt for connection.");
+            if (bluetoothGatt.connect()) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
         BluetoothDevice device = bluetooth.getRemoteDevice(address);
         if (device == null) {  //蓝牙体温计无法连接，被其他体温计占用
             sendMsg(BLEConfig.BLE_DEVICE_NOT_FOUND, "体温计连接失败，请尝试重启体温计，并重新连接");
-            return;
+            return false;
         }
         callBack = new DataBleCallBackEx(this);
         bluetoothGatt = device.connectGatt(this, false, callBack);
+        mBluetoothDeviceAddress = address;
         LogUtil.info("连接代码执行完毕");
+        return true;
     }
 
     /**

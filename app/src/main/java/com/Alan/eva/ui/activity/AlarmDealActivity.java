@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -20,6 +21,9 @@ import com.Alan.eva.tools.alarm.AlarmClockManager;
 import com.Alan.eva.tools.alarm.AlarmHandle;
 import com.Alan.eva.tools.alarm.AlarmService;
 
+/**
+ * 闹钟响起界面
+ */
 public class AlarmDealActivity extends Activity {
     private Context context;
     private TextView tvshow;
@@ -53,12 +57,15 @@ public class AlarmDealActivity extends Activity {
                 | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         setContentView(R.layout.ac_alarm_play);
         init();
-        initView();
     }
 
     private void initView() {
         tvshow = (TextView) findViewById(R.id.alarmdel_tv_showlable);
-        tvshow.setText(alarm.label);
+        String label = alarm.label;
+        if (TextUtils.isEmpty(label)) {
+            label = "";
+        }
+        tvshow.setText(label);
     }
 
     private void init() {
@@ -67,10 +74,15 @@ public class AlarmDealActivity extends Activity {
         if (id != 0) {
             // 根据ID获得闹钟的详细信息
             alarm = AlarmHandle.getAlarm(context, id);
+            if (alarm == null) {
+                finish();
+                return;
+            }
             // 开启服务，监听电话状态和音乐播放
             Intent intent = new Intent(this, AlarmService.class);
             intent.putExtra("alarm", alarm);
             bindService(intent, SConn, Context.BIND_AUTO_CREATE);
+            initView();
         }
     }
 
@@ -91,6 +103,7 @@ public class AlarmDealActivity extends Activity {
         AlarmClockManager.setNextAlarm(context);
     }
 
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         release();

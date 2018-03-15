@@ -22,6 +22,7 @@ public class AlarmService extends Service {
 
 	private IBinder binder = new MyBinder();
 
+	@Override
 	public IBinder onBind(Intent intent) {
 		if (intent != null) {
 
@@ -107,6 +108,7 @@ public class AlarmService extends Service {
 		mVibrator.cancel();
 	}
 
+	@Override
 	public void onDestroy() {
 		super.onDestroy();
 		stop();

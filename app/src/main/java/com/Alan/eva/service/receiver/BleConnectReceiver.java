@@ -28,27 +28,28 @@ public class BleConnectReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         LogUtil.info("action=" + action);
-        if (TextUtils.equals(action, BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
-            //正在搜索
-            service.sendMsg(BLEConfig.BLE_IS_SCANNING, "正在扫描，请提前打开体温计");
-        } else if (TextUtils.equals(action, BluetoothAdapter.ACTION_DISCOVERY_FINISHED)) {
-            //搜索结束
-            service.sendMsg(BLEConfig.BLE_SCAN_FINISH, "扫描结束");
-        } else if (TextUtils.equals(action, BluetoothDevice.ACTION_FOUND)) {
-            //搜索到新体温计
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            String address = device.getAddress();
-            if (BluetoothAdapter.checkBluetoothAddress(address)) {  //mac地址是否符合要求
-                String name = device.getName();
-                if (!TextUtils.isEmpty(name) && name.length() > 3) { //名称是否不为空且长度大于3
-                    if (name.contains("EVE")) { //体温计是否包含EVE字符
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(BLEConfig.DEVICE_KEY, device);
-                        service.sendMsg(BLEConfig.BLE_NEW_DEVICE, bundle);
-                    }
-                }
-            }
-        } else if (TextUtils.equals(action, BluetoothAdapter.ACTION_STATE_CHANGED)) {
+//        if (TextUtils.equals(action, BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
+//            //正在搜索
+//            service.sendMsg(BLEConfig.BLE_IS_SCANNING, "正在扫描，请提前打开体温计");
+//        } else if (TextUtils.equals(action, BluetoothAdapter.ACTION_DISCOVERY_FINISHED)) {
+//            //搜索结束
+//            service.sendMsg(BLEConfig.BLE_SCAN_FINISH, "扫描结束");
+//        } else if (TextUtils.equals(action, BluetoothDevice.ACTION_FOUND)) {
+//            //搜索到新体温计
+//            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+//            String address = device.getAddress();
+//            if (BluetoothAdapter.checkBluetoothAddress(address)) {  //mac地址是否符合要求
+//                String name = device.getName();
+//                if (!TextUtils.isEmpty(name) && name.length() > 3) { //名称是否不为空且长度大于3
+//                    if (name.contains("EVE")) { //体温计是否包含EVE字符
+//                        Bundle bundle = new Bundle();
+//                        bundle.putParcelable(BLEConfig.DEVICE_KEY, device);
+//                        service.sendMsg(BLEConfig.BLE_NEW_DEVICE, bundle);
+//                    }
+//                }
+//            }
+//        } else
+        if (TextUtils.equals(action, BluetoothAdapter.ACTION_STATE_CHANGED)) {
             BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
             int state = adapter.getState();
             if (state == BluetoothAdapter.STATE_OFF) {

@@ -102,6 +102,7 @@ public class SuggestActivity extends AbsActivity implements OnClickListener, IRe
         if (code == SUGGEST_POST) {
             LogUtil.info("反馈结束");
         }
+        hide();
     }
 
     @Override
@@ -109,5 +110,6 @@ public class SuggestActivity extends AbsActivity implements OnClickListener, IRe
         if (code == SUGGEST_POST) {
             showTips("提交错误，请重试");
         }
+        hide();
     }
 }

@@ -78,7 +78,7 @@
             android:name=".ui.activity.SetTimeActivity"
             android:label="设置闹钟"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateVisible|adjustPan" />
+            android:windowSoftInputMode="stateHidden|adjustPan" />
         <activity
             android:name=".ui.activity.SelectBellActivity"
             android:label="选择铃声"

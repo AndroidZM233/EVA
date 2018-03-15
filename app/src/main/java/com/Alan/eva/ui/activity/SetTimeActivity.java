@@ -31,6 +31,9 @@ import com.Alan.eva.ui.core.AbsActivity;
 
 import java.util.Calendar;
 
+/**
+ * 预约提醒时间设置界面
+ */
 public class SetTimeActivity extends AbsActivity implements View.OnClickListener {
     // 打开对话框的标志
     private final static int SHOW_REPEAT = 1;
@@ -305,6 +308,7 @@ public class SetTimeActivity extends AbsActivity implements View.OnClickListener
     }
 
     // 获得选择铃声的名称和路径
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             if (requestCode == BELL_SELECT_CODE) {

@@ -3,6 +3,8 @@ package com.Alan.eva.ui.activity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -66,6 +68,12 @@ public class AlarmListActivity extends AbsActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        refresh();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_alarm_list_title, menu);
         return true;
@@ -74,12 +82,19 @@ public class AlarmListActivity extends AbsActivity {
 
     private void refresh() {
         ArrayList<Alarm> alarms = AlarmHandle.getAlarms(getCurrActivity());
+        notifyAdapter(alarms);
         if (Tools.isListEmpty(alarms)) {
             showTips("暂无预约，请添加");
-            return;
         }
-        notifyAdapter(alarms);
     }
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            adapter.notifyDataSetChanged();
+        }
+    };
 
     private void notifyAdapter(ArrayList<Alarm> arrayList) {
         if (adapter == null) {
@@ -87,7 +102,7 @@ public class AlarmListActivity extends AbsActivity {
             recycler_alarm_list_list.setAdapter(adapter);
         } else {
             adapter.setDataList(arrayList);
-            adapter.notifyDataSetChanged();
+            handler.sendMessage(handler.obtainMessage());
         }
     }
 
